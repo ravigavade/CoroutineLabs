@@ -1,6 +1,7 @@
 package com.csaim.coroutinelabs
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,7 +18,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        logTime("test",){ Thread.sleep(500) }
+        Thread{
+
+            logTime("10 cities, blocking") {
+                for (city in cities) {
+                    val temp = fetchTemperature(city)
+                    Log.d("CoroutineLabs", "${city.name}: $temp °C")
+                }
+            }
+        }.start()
+
+//        logTime("test",){ Thread.sleep(500) }
 
 
         enableEdgeToEdge()
