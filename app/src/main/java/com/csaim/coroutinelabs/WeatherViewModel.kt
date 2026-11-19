@@ -6,10 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.cancellation.CancellationException
 
 data class CityWeather(val name: String, val temp: Double?)
 
@@ -26,8 +28,13 @@ class WeatherViewModel : ViewModel() {
         refresh()
     }
 
+    private var loadJob: Job? = null
+
     fun refresh() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+
+            Log.d("CoroutineLabs", "load started")
             isLoading = true
             val start = System.currentTimeMillis()
 
@@ -44,6 +51,8 @@ class WeatherViewModel : ViewModel() {
                 requests.map { (city, request) ->
                     val temp = try {
                         request.await()
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.e("CoroutineLabs", "${city.name} failed: ${e.message}")
                         null
@@ -54,6 +63,7 @@ class WeatherViewModel : ViewModel() {
 
             loadTimeMs = System.currentTimeMillis() - start
             isLoading = false
+            Log.d("CoroutineLabs", "load finished")
         }
     }
 }

@@ -58,7 +58,7 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { viewModel.refresh() },
-            enabled = !viewModel.isLoading
+//            enabled = !viewModel.isLoading
         ) {
             Text("Refresh")
         }

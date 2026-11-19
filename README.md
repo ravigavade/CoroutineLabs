@@ -29,7 +29,7 @@ The final app loads all cities in parallel, shows each temperature, marks failed
 | 3 | Coroutines, parallel (`async` + `awaitAll`) | ~196 ms (avg of 5 runs) | About 2.4x faster than sequential coroutines |
 | 4 | Parallel + error handling (`supervisorScope`), 1 deliberately broken city | ~243 ms (avg of 5 runs, median 206 ms) | Good cities all load, the broken one is reported as failed |
 | 5 | Parallel + per-request timeout (`withTimeoutOrNull`), with a simulated 10 s "Slow City" | 3005 ms (vs 10039 ms without the timeout) | Slow request is cancelled after 3 s and shown as unavailable |
-| 6 | Cancellation | coming soon | |
+| 6 | Cancellation (`Job.cancel()` on Refresh) | 3 taps: 3 loads finished before, 1 after | Old loads are cancelled instead of running to the end |
 
 ## Stages
 
@@ -76,6 +76,14 @@ I added a "Slow City" that answers after 10 seconds (simulated with `delay`).
 - **Fix:** `withTimeoutOrNull(3_000)` around each request. If it takes longer, it is cancelled, returns `null`, and the city shows as unavailable.
 - **Result:** 3005 ms, and every other city still shows its temperature.
 - **Limit:** coroutine timeouts only work on cancellable code like `delay`. A blocking call such as `readText()` can't be interrupted this way, so a real connection timeout would have to be set on the connection itself (not done here).
+
+### Stage 6: Cancellation
+The Refresh button can now be tapped while a load is still running.
+- **Before:** tapping Refresh 3 times quickly started 3 loads, and all 3 ran to the end (3 "load started", 3 "load finished"), making the same 12 requests three times.
+- **Fix:** `launch` returns a `Job`. The ViewModel keeps it and calls `loadJob?.cancel()` at the start of every `refresh()`. Cancelling the parent also cancels all of its child `async` requests.
+- **Result:** 3 "load started" but only 1 "load finished". The cancelled loads stop and never touch the screen state.
+- **Gotcha:** cancellation is delivered as a `CancellationException`. A `catch (e: Exception)` would swallow it and break the cancellation, so the `catch` block rethrows it before handling real errors.
+- Because the ViewModel uses `viewModelScope`, everything is also cancelled automatically when the ViewModel is discarded.
 
 ## Project structure
 
