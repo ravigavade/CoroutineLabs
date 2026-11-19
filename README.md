@@ -22,7 +22,7 @@ An Android app (Kotlin + Jetpack Compose) that loads the current weather for 10 
 |---|---|---|---|
 | 1 | Blocking calls, one after another, in a plain `Thread` | ~385 ms (avg of 5 runs) | Crashes on the main thread |
 | 2 | Coroutines (`suspend` + `Dispatchers.IO`), sequential | ~475 ms (avg of 5 runs) | Not faster than Stage 1: cities still load one by one, plus a small cost for switching threads |
-| 3 | Coroutines, parallel (`async`) | coming soon | |
+| 3 | Coroutines, parallel (`async` + `awaitAll`) | ~196 ms (avg of 5 runs) | About 2.4x faster than sequential coroutines |
 | 4 | Error handling | coming soon | |
 | 5 | Timeout and retry | coming soon | |
 | 6 | Cancellation | coming soon | |
@@ -44,6 +44,12 @@ Loads each city with a blocking `URL(...).readText()` call in a `for` loop.
 - The coroutine starts on the main thread and only the network call switches to the IO thread pool, so the main thread is never blocked.
 - Result: about 475 ms for 10 cities. Similar to Stage 1 (the cities are still sequential), with a small overhead from switching threads.
 - One request hung for ~30 seconds on a stale emulator connection and crashed the app, because there is no error handling or timeout yet (Stages 4 and 5).
+
+### Stage 3: Parallel loading
+Instead of waiting for each city before starting the next, every city gets its own `async` coroutine and `awaitAll()` collects the results.
+- All 10 requests are in flight at the same time, so the total time is close to the slowest single request, not the sum of all of them.
+- Result: about 196 ms for 10 cities, versus about 475 ms sequential (2.4x faster) and about 385 ms with the blocking version (2x faster).
+- The speedup is smaller than 10x. Parallel requests each open their own connection, and the emulator network adds noise.
 
 ## Project structure
 

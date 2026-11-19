@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.csaim.coroutinelabs.ui.theme.CoroutineLabsTheme
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -23,9 +25,17 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch{
 
 //            logTime("10 cities, blocking") {
-            logTime("10 cities, coroutines sequential") {
-                for (city in cities) {
-                    val temp = fetchTemperature(city)
+            logTime("10 cities, coroutines parallel") {
+
+                val results = cities.map { city ->
+                    async{
+                        city to fetchTemperature(city)
+                    }
+
+                }.awaitAll()
+
+                for ((city, temp) in results) {
+//                    val temp = fetchTemperature(city)
                     Log.d("CoroutineLabs", "${city.name}: $temp °C")
                 }
             }
