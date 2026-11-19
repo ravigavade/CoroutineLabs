@@ -28,7 +28,7 @@ The final app loads all cities in parallel, shows each temperature, marks failed
 | 2 | Coroutines (`suspend` + `Dispatchers.IO`), sequential | ~475 ms (avg of 5 runs) | Not faster than Stage 1: cities still load one by one, plus a small cost for switching threads |
 | 3 | Coroutines, parallel (`async` + `awaitAll`) | ~196 ms (avg of 5 runs) | About 2.4x faster than sequential coroutines |
 | 4 | Parallel + error handling (`supervisorScope`), 1 deliberately broken city | ~243 ms (avg of 5 runs, median 206 ms) | Good cities all load, the broken one is reported as failed |
-| 5 | Timeout and retry | coming soon | |
+| 5 | Parallel + per-request timeout (`withTimeoutOrNull`), with a simulated 10 s "Slow City" | 3005 ms (vs 10039 ms without the timeout) | Slow request is cancelled after 3 s and shown as unavailable |
 | 6 | Cancellation | coming soon | |
 
 ## Stages
@@ -69,7 +69,14 @@ I moved the loading code into a `WeatherViewModel` and built a small Compose scr
 - The loader is the best version so far: parallel `async` requests inside `supervisorScope`, with errors handled per city.
 - It runs in `viewModelScope`, so rotating the screen no longer restarts the loading, unlike the earlier `lifecycleScope` version in `onCreate`.
 - The screen state uses Compose's `mutableStateOf` (no Flow), so the list redraws on its own when the data arrives.
-- 
+
+### Stage 5: Timeout
+I added a "Slow City" that answers after 10 seconds (simulated with `delay`).
+- **Before:** the whole screen waited 10039 ms, because the list is only published after every request finishes.
+- **Fix:** `withTimeoutOrNull(3_000)` around each request. If it takes longer, it is cancelled, returns `null`, and the city shows as unavailable.
+- **Result:** 3005 ms, and every other city still shows its temperature.
+- **Limit:** coroutine timeouts only work on cancellable code like `delay`. A blocking call such as `readText()` can't be interrupted this way, so a real connection timeout would have to be set on the connection itself (not done here).
+
 ## Project structure
 
 - `Cities.kt`: the list of cities with their coordinates

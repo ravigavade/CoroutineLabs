@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class CityWeather(val name: String, val temp: Double?)
 
@@ -32,7 +33,13 @@ class WeatherViewModel : ViewModel() {
 
             weather = supervisorScope {
                 val requests = cities.map { city ->
-                    city to async { fetchTemperature(city) }
+//                    city to async { fetchTemperature(city) }
+                    city to async {
+                        val temp = withTimeoutOrNull(3_000) { fetchTemperature(city) }
+                        if (temp == null) Log.w("CoroutineLabs", "${city.name} timed out")
+                        temp
+                    }
+
                 }
                 requests.map { (city, request) ->
                     val temp = try {

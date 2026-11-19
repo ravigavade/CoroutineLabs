@@ -18,7 +18,8 @@ val cities = listOf(
     City("Tokyo", 35.6895, 139.6917),
     City("London", 51.5074, -0.1278),
     City("Berlin", 52.5200, 13.4050),
-    City("Broken City", 999.0, 999.0)
+    City("Broken City", 999.0, 999.0),
+    City("Slow City", 48.85, 2.35)
 
 
 
