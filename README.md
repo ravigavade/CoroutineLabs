@@ -23,7 +23,7 @@ An Android app (Kotlin + Jetpack Compose) that loads the current weather for 10 
 | 1 | Blocking calls, one after another, in a plain `Thread` | ~385 ms (avg of 5 runs) | Crashes on the main thread |
 | 2 | Coroutines (`suspend` + `Dispatchers.IO`), sequential | ~475 ms (avg of 5 runs) | Not faster than Stage 1: cities still load one by one, plus a small cost for switching threads |
 | 3 | Coroutines, parallel (`async` + `awaitAll`) | ~196 ms (avg of 5 runs) | About 2.4x faster than sequential coroutines |
-| 4 | Error handling | coming soon | |
+| 4 | Parallel + error handling (`supervisorScope`), 1 deliberately broken city | ~243 ms (avg of 5 runs, median 206 ms) | Good cities all load, the broken one is reported as failed |
 | 5 | Timeout and retry | coming soon | |
 | 6 | Cancellation | coming soon | |
 
@@ -50,6 +50,15 @@ Instead of waiting for each city before starting the next, every city gets its o
 - All 10 requests are in flight at the same time, so the total time is close to the slowest single request, not the sum of all of them.
 - Result: about 196 ms for 10 cities, versus about 475 ms sequential (2.4x faster) and about 385 ms with the blocking version (2x faster).
 - The speedup is smaller than 10x. Parallel requests each open their own connection, and the emulator network adds noise.
+
+### Stage 4: Error handling
+I added a deliberately broken city (latitude 999) to the list to see what one failing request does to the other ten.
+- **Before:** with plain `async` + `awaitAll()`, the failure crashed the app and none of the 10 good cities were shown, because a failing child cancels its parent and siblings.
+- **Fix 1:** a `try / catch` inside each `async`, so the error never leaves the coroutine that failed.
+- **Fix 2:** `supervisorScope`, where a failing child does not cancel its siblings, and the error is only thrown when you `await()` that one result. Each city is then handled on its own.
+- **Experiment:** swapping `supervisorScope` for `coroutineScope` (while keeping the `try / catch` around `await()`) crashed the app again. A `catch` around `await()` is not enough in a normal scope, because the failure also goes up to the parent.
+- Result: all 10 good cities load, the broken one is reported as failed, and there is no crash. Time is about 243 ms, so error handling costs nothing noticeable.
+- One run took 2036 ms because a single request was slow, which is the problem Stage 5 addresses.
 
 ## Project structure
 

@@ -16,7 +16,9 @@ import androidx.lifecycle.lifecycleScope
 import com.csaim.coroutinelabs.ui.theme.CoroutineLabsTheme
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,18 +27,44 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch{
 
 //            logTime("10 cities, blocking") {
-            logTime("10 cities, coroutines parallel") {
+            logTime("11 cities, parallel with 1 broken city") {
 
-                val results = cities.map { city ->
-                    async{
-                        city to fetchTemperature(city)
+//                val results = cities.map { city ->
+//                    async{
+//
+//                        try {
+//                            city to fetchTemperature(city)
+//                        } catch (e: Exception) {
+//                            Log.e("CoroutineLabs", "${city.name} failed: ${e.message}")
+//                            city to null
+//                        }
+//                    }
+//
+//                }.awaitAll()
+//
+//                for ((city, temp) in results) {
+//                    if (temp != null) {
+//                        Log.d("CoroutineLabs", "${city.name}: $temp °C")
+//                    } else {
+//                        Log.d("CoroutineLabs", "${city.name}: no data")
+//                    }
+//                }
+
+                supervisorScope {
+                    val requests = cities.map { city ->
+                        city to async { fetchTemperature(city) }
                     }
 
-                }.awaitAll()
+                    for ((city, request) in requests) {
+                        try {
+                            Log.d("CoroutineLabs", "${city.name}: ${request.await()} °C")
+                        } catch (e: Exception) {
+                            Log.e("CoroutineLabs", "${city.name}: failed (${e.message})")
+                        }
+                    }
 
-                for ((city, temp) in results) {
-//                    val temp = fetchTemperature(city)
-                    Log.d("CoroutineLabs", "${city.name}: $temp °C")
+
+
                 }
             }
         }
