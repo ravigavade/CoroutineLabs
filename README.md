@@ -2,6 +2,10 @@
 
 An Android app (Kotlin + Jetpack Compose) that loads the current weather for 10 cities and compares plain blocking code with Kotlin coroutines. Each stage changes how the loading works and measures the result with a simple timer, so the differences are real numbers and not just claims.
 
+![Weather screen](screenshots/weather.png)
+
+The final app loads all cities in parallel, shows each temperature, marks failed cities as unavailable, and has a Refresh button. Earlier versions of the loader (blocking, sequential coroutines, and so on) are in the git history, in the commits named Stage 1 to Stage 4.
+
 ## What this project shows
 
 - Why blocking network calls break on Android's main thread
@@ -60,9 +64,17 @@ I added a deliberately broken city (latitude 999) to the list to see what one fa
 - Result: all 10 good cities load, the broken one is reported as failed, and there is no crash. Time is about 243 ms, so error handling costs nothing noticeable.
 - One run took 2036 ms because a single request was slow, which is the problem Stage 5 addresses.
 
+### Stage 4.5: A real screen
+I moved the loading code into a `WeatherViewModel` and built a small Compose screen on top of it.
+- The loader is the best version so far: parallel `async` requests inside `supervisorScope`, with errors handled per city.
+- It runs in `viewModelScope`, so rotating the screen no longer restarts the loading, unlike the earlier `lifecycleScope` version in `onCreate`.
+- The screen state uses Compose's `mutableStateOf` (no Flow), so the list redraws on its own when the data arrives.
+- 
 ## Project structure
 
 - `Cities.kt`: the list of cities with their coordinates
-- `WeatherApi.kt`: fetches the temperature for one city
-- `Timing.kt`: the `logTime` helper
-- `MainActivity.kt`: runs the loader
+- `WeatherApi.kt`: `suspend` function that fetches the temperature for one city
+- `WeatherViewModel.kt`: loads all cities in parallel and holds the screen state
+- `WeatherScreen.kt`: the Compose screen
+- `MainActivity.kt`: sets up the screen
+- `Timing.kt`: the `logTime` helper used for the measurements in the stages above
