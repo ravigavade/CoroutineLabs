@@ -21,7 +21,7 @@ An Android app (Kotlin + Jetpack Compose) that loads the current weather for 10 
 | Stage | Approach | Time for 10 cities | Notes |
 |---|---|---|---|
 | 1 | Blocking calls, one after another, in a plain `Thread` | ~385 ms (avg of 5 runs) | Crashes on the main thread |
-| 2 | Coroutines, sequential | coming soon | |
+| 2 | Coroutines (`suspend` + `Dispatchers.IO`), sequential | ~475 ms (avg of 5 runs) | Not faster than Stage 1: cities still load one by one, plus a small cost for switching threads |
 | 3 | Coroutines, parallel (`async`) | coming soon | |
 | 4 | Error handling | coming soon | |
 | 5 | Timeout and retry | coming soon | |
@@ -38,6 +38,12 @@ Loads each city with a blocking `URL(...).readText()` call in a `for` loop.
 - Moving the loop into a plain `Thread` fixes the crash, but the cities still load one after another.
 - An error inside that thread (a failed connection) crashed the whole app, because nothing catches it.
 - Baseline: about 385 ms for 10 cities.
+
+### Stage 2: First coroutines
+`fetchTemperature` became a `suspend` function that wraps the blocking call in `withContext(Dispatchers.IO)`, and the loop runs inside `lifecycleScope.launch`.
+- The coroutine starts on the main thread and only the network call switches to the IO thread pool, so the main thread is never blocked.
+- Result: about 475 ms for 10 cities. Similar to Stage 1 (the cities are still sequential), with a small overhead from switching threads.
+- One request hung for ~30 seconds on a stale emulator connection and crashed the app, because there is no error handling or timeout yet (Stages 4 and 5).
 
 ## Project structure
 

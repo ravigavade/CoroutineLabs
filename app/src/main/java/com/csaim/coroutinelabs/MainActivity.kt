@@ -12,21 +12,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
 import com.csaim.coroutinelabs.ui.theme.CoroutineLabsTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Thread{
+        lifecycleScope.launch{
 
-            logTime("10 cities, blocking") {
+//            logTime("10 cities, blocking") {
+            logTime("10 cities, coroutines sequential") {
                 for (city in cities) {
                     val temp = fetchTemperature(city)
                     Log.d("CoroutineLabs", "${city.name}: $temp °C")
                 }
             }
-        }.start()
+        }
 
 //        logTime("test",){ Thread.sleep(500) }
 
