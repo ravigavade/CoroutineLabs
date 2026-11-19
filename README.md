@@ -85,6 +85,14 @@ The Refresh button can now be tapped while a load is still running.
 - **Gotcha:** cancellation is delivered as a `CancellationException`. A `catch (e: Exception)` would swallow it and break the cancellation, so the `catch` block rethrows it before handling real errors.
 - Because the ViewModel uses `viewModelScope`, everything is also cancelled automatically when the ViewModel is discarded.
 
+## What I learned
+
+- A `suspend` function can pause without blocking a thread, and a dispatcher decides which thread the work runs on.
+- Doing independent work at the same time (`async` + `awaitAll`) matters more than just moving it off the main thread.
+- In a normal scope, one failing child cancels its siblings and its parent. `supervisorScope` changes that.
+- Timeouts and cancellation only work on code that cooperates with cancellation.
+- Always rethrow `CancellationException`.
+
 ## Project structure
 
 - `Cities.kt`: the list of cities with their coordinates
@@ -93,3 +101,7 @@ The Refresh button can now be tapped while a load is still running.
 - `WeatherScreen.kt`: the Compose screen
 - `MainActivity.kt`: sets up the screen
 - `Timing.kt`: the `logTime` helper used for the measurements in the stages above
+
+## Run it
+
+Open the project in Android Studio and run it on an emulator or device with internet access. No API key is needed.
